@@ -1,0 +1,135 @@
+---
+output: pdf_document
+geometry: margin=1.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{tabu}
+  - \usepackage{longtable}
+  - \usepackage{caption}
+---
+
+\captionsetup[table]{labelformat=empty}
+
+```{r setup-supp-tab, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE, 
+  fig.pos = "H")
+# disable sci number format
+options(scipen = 999)
+options(knitr.kable.NA = '')
+# tools
+library(here)
+library(papaja)
+library(captioner)
+library(glue)
+# data wrangling
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
+# statistical modeling
+library(lsr)
+library(irr)
+library(pROC)
+library(caret)
+library(xgboost)
+# result plots
+library(ggpubr)
+library(ggplot2)
+library(plotROC)
+library(gtable)
+# tables
+library(knitr)
+library(kableExtra)
+# constant variables
+emotion_list <- c(
+  "anger", 
+  "disgust", 
+  "fear", 
+  "happiness", 
+  "sadness", 
+  "surprise"
+  )
+
+classifier_level <- c(
+  "Humans",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+
+name_convention_recode <- c(
+  "Humans" = "Human Observers",
+  "Affectiva" = "Affectiva",
+  "CrowdEmotion" = "CrowdEmotion",
+  "Emotient" = "Emotient",
+  "Microsoft" = "Microsoft",
+  "MorphCast" = "MorphCast",
+  "Neurodatalab" = "Neurodata Lab",
+  "VicarVision" = "VicarVision",
+  "VisageTechnologies" = "Visage Technologies"
+  )
+```
+
+S1 Table. Metrics for determining the confidence score (CS), the recognized emotion label, and the emotion classification score per video (B) based on the raw data (A) from human observers.
+
+**A**
+```{r}
+tibble::tribble(
+    ~`$Video$`, ~`$Emotion Displayed$`, ~`$Hunan Observer_1$`,  ~`$\\hdots$`, ~`$Hunan Observer_k$`,
+   "$Video_1$",       "$EmoDis_{1,1}$",    "$EmoRec_{1,1,1}$",   "$\\hdots$",    "$EmoRec_{1,j,k}$",
+   "$Video_2$",       "$EmoDis_{2,2}$",    "$EmoRec_{2,2,1}$",   "$\\hdots$",    "$EmoRec_{2,j,k}$",
+   "$\\vdots$",            "$\\vdots$",           "$\\vdots$",   "$\\vdots$",           "$\\vdots$",
+   "$Video_i$",       "$EmoDis_{i,j}$",    "$EmoRec_{i,j,1}$",   "$\\hdots$",    "$EmoRec_{i,j,k}$"
+  ) %>% 
+  knitr::kable(
+    escape = FALSE, 
+    booktabs = TRUE, 
+    linesep = c('\\addlinespace', '\\addlinespace', '\\addlinespace'),
+    align=rep('c', 5)
+  ) %>%
+  kableExtra::kable_styling(font_size = 7)
+```
+
+**B**
+```{r}
+cs11 <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{1,1,k}$"
+cs21 <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{2,1,k}$"
+csi1 <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{i,1,k}$"
+cs1j <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{1,j,k}$"
+cs2j <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{2,j,k}$"
+csij <- "$\\frac{1}{K}\\sum_{k=1}^{K}EmoRec_{i,j,k}$"
+
+code1 <- "$\\left\\{\\begin{matrix} EmoDis_{1,1} = EmoRec_{1,j}, 1\\\\ EmoDis_{1,1} \\neq EmoRec_{1,j}, 0 \\end{matrix}\\right.$"
+code2 <- "$\\left\\{\\begin{matrix} EmoDis_{2,2} = EmoRec_{2,j}, 1\\\\ EmoDis_{2,2} \\neq EmoRec_{2,j}, 0 \\end{matrix}\\right.$"
+codei <- "$\\left\\{\\begin{matrix} EmoDis_{i,j} = EmoRec_{i,j}, 1\\\\ EmoDis_{i,j} \\neq EmoRec_{i,j}, 0 \\end{matrix}\\right.$"
+
+tibble::tribble(
+    ~`$Video$`,~`$Emotion Displayed$`, ~`$CS Emotion Recognized_1$`,  ~`$\\hdots$`, ~`$CS Emotion Recognized_j$`,   ~`$Emotion Recognized$`, ~`$Emotion Classification$`,
+   "$Video_1$",      "$EmoDis_{1,1}$",                         cs11,   "$\\hdots$",                         cs1j,"$\\max(CS EmoRec_{1,j})$",                       code1, 
+   "$Video_2$",      "$EmoDis_{2,2}$",                         cs21,   "$\\hdots$",                         cs2j,"$\\max(CS EmoRec_{2,j})$",                       code2, 
+         "$\\vdots$",                 "$\\vdots$",                        "$\\vdots$",   "$\\vdots$",                        "$\\vdots$",                     "$\\vdots$",                       "$\\vdots$",
+   "$Video_i$",      "$EmoDis_{i,j}$",                         csi1,   "$\\hdots$",                         csij,"$\\max(CS EmoRec_{i,j})$",                       codei
+  ) %>% 
+  knitr::kable(
+    escape = FALSE, 
+    booktabs = TRUE, 
+    linesep = "",
+    align=rep('c', 7)
+  ) %>%
+  kableExtra::kable_styling(font_size = 7)
+```
+
+Note: $i$ refers to one of the 937 videos processed, $j$ is an emotion label among *anger*, *disgust*, *fear*, *happiness*, *sadness* and *surprise*, and $k$ is one of the 14 human observers.
+
+

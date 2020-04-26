@@ -1,0 +1,74 @@
+---
+output: pdf_document
+geometry: margin=1.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{tabu}
+  - \usepackage{longtable}
+  - \usepackage{caption}
+---
+
+\captionsetup[figure]{labelformat=empty}
+
+```{r setup-supp-fig, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE, 
+  fig.pos = "H")
+# disable sci number format
+options(scipen = 999)
+# tools
+library(here)
+library(pander)
+library(papaja)
+library(captioner)
+# data wrangling
+library(tidyverse)
+# statistical modeling
+library(emmeans)
+library(multcompView)
+library(lsr)
+library(pROC)
+# result plots
+library(ggpubr)
+library(ggcorrplot)
+library(Hmisc)
+library(plotROC)
+# images
+library(png)
+library(grid)
+library(gridExtra)
+library(gtable)
+```
+
+```{r captions-supp-fig, include=FALSE}
+caption_1 <- "S1 Figure. Emotion confusion matrices for human observers and automatic classifiers separately by posed and spontaneous expressions. For cases with ‘undetermined’ confidence levels, the sum of the marginal proportion of recognized emotions can be higher than 100\\%."
+
+caption_2 <- "S2 Figure. Mean values and standard deviations of the Area Under the Curve (AUC) by type of expression for every combination of the 14 human observers."
+```
+
+```{r observers-combination, fig.cap=caption_2, fig.height=5}
+read.csv(here::here("data/auc_results.csv")) %>% 
+  dplyr::mutate(combn_dim = as.numeric(combn_dim)) %>% 
+  tidyr::pivot_longer(
+    cols = starts_with("auc_val"),
+    names_to = "expression",
+    values_to = "auc_val"
+  ) %>% 
+  dplyr::mutate(expression = factor(expression, levels = c("auc_val_spont", "auc_val_posed"))) %>% 
+  ggplot(aes(x = combn_dim, y = auc_val, color = expression)) +
+  stat_summary(fun.data = "mean_sdl", size = 0.5, position = position_dodge(width = .75)) +
+  stat_summary(fun.y = "mean", geom = "point", size = 3, position = position_dodge(width = .75)) +
+  scale_y_continuous(name = "AUC value", limits = c(0, 1), breaks = seq(0, 1, by = 0.1)) +
+  scale_x_continuous(name = "Combination of k human observers", breaks = 1:14) + 
+  scale_color_discrete(name = "Expression Type", labels = c("Spontaneous", "Posed")) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 14, family = "serif"),
+    panel.grid.minor = element_blank()
+  )
+```

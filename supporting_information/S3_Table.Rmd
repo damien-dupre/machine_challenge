@@ -1,0 +1,106 @@
+---
+output: pdf_document
+geometry: margin=1.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{tabu}
+  - \usepackage{longtable}
+  - \usepackage{caption}
+---
+
+\captionsetup[table]{labelformat=empty}
+
+```{r setup-supp-tab, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE, 
+  fig.pos = "H")
+# disable sci number format
+options(scipen = 999)
+options(knitr.kable.NA = '')
+# tools
+library(here)
+library(papaja)
+library(captioner)
+library(glue)
+# data wrangling
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
+# statistical modeling
+library(lsr)
+library(irr)
+library(pROC)
+library(caret)
+library(xgboost)
+# result plots
+library(ggpubr)
+library(ggplot2)
+library(plotROC)
+library(gtable)
+# tables
+library(knitr)
+library(kableExtra)
+# constant variables
+emotion_list <- c(
+  "anger", 
+  "disgust", 
+  "fear", 
+  "happiness", 
+  "sadness", 
+  "surprise"
+  )
+
+classifier_level <- c(
+  "Humans",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+
+name_convention_recode <- c(
+  "Humans" = "Human Observers",
+  "Affectiva" = "Affectiva",
+  "CrowdEmotion" = "CrowdEmotion",
+  "Emotient" = "Emotient",
+  "Microsoft" = "Microsoft",
+  "MorphCast" = "MorphCast",
+  "Neurodatalab" = "Neurodata Lab",
+  "VicarVision" = "VicarVision",
+  "VisageTechnologies" = "Visage Technologies"
+  )
+```
+
+
+```{r results="asis"}
+readr::read_csv(here::here("data/roc_test_res.csv")) %>%
+  dplyr::mutate(database = dplyr::case_when(
+    database == "Spontaneous\nExpressions" ~ "Spontaneous",
+    database == "Posed\nExpressions" ~ "Posed"
+  )) %>% 
+  dplyr::filter(database == "Posed") %>% 
+  knitr::kable(
+    "latex",
+    booktabs = TRUE,
+    linesep = "",
+    caption = "S3 Table. Pairwise two-sided bootstrap comparision of the Receiver Operating Characteristic (ROC)'s Area Under the Curve (AUC) between the classifiers for posed facial expressions.",
+    escape = TRUE,
+    longtable = FALSE
+  ) %>%
+  kableExtra::kable_styling(
+    #latex_options = "HOLD_position",
+    font_size = 8,
+    full_width = FALSE
+  )
+
+```

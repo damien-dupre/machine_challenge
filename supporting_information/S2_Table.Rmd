@@ -1,0 +1,143 @@
+---
+output: pdf_document
+geometry: margin=1.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{tabu}
+  - \usepackage{longtable}
+  - \usepackage{caption}
+---
+
+\captionsetup[table]{labelformat=empty}
+
+```{r setup-supp-tab, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE, 
+  fig.pos = "H")
+# disable sci number format
+options(scipen = 999)
+options(knitr.kable.NA = '')
+# tools
+library(here)
+library(papaja)
+library(captioner)
+library(glue)
+# data wrangling
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
+# statistical modeling
+library(lsr)
+library(irr)
+library(pROC)
+library(caret)
+library(xgboost)
+# result plots
+library(ggpubr)
+library(ggplot2)
+library(plotROC)
+library(gtable)
+# tables
+library(knitr)
+library(kableExtra)
+# constant variables
+emotion_list <- c(
+  "anger", 
+  "disgust", 
+  "fear", 
+  "happiness", 
+  "sadness", 
+  "surprise"
+  )
+
+classifier_level <- c(
+  "Humans",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+
+name_convention_recode <- c(
+  "Humans" = "Human Observers",
+  "Affectiva" = "Affectiva",
+  "CrowdEmotion" = "CrowdEmotion",
+  "Emotient" = "Emotient",
+  "Microsoft" = "Microsoft",
+  "MorphCast" = "MorphCast",
+  "Neurodatalab" = "Neurodata Lab",
+  "VicarVision" = "VicarVision",
+  "VisageTechnologies" = "Visage Technologies"
+  )
+```
+
+S2 Table. Metrics for determining the confidence score (CS), the recognized emotion label, and the emotion classification score per video (B) based on the raw data (A) from the automatic classifiers.
+
+**A**
+```{r}
+tibble::tribble(
+    ~`$Video$`, ~`$Frame$`, ~`$Emotion Displayed$`, ~`$Emotion Recognized_1$`,    ~`$\\hdots$`, ~`$Emotion Recognized_j$`,
+   "$Video_1$",    "$t_0$",       "$EmoDis_{1,1}$",  "$\\psi_{0,1,1}$",     "$\\hdots$",  "$\\psi_{0,1,j}$",
+   "$Video_1$",    "$t_1$",       "$EmoDis_{1,1}$",  "$\\psi_{1,1,1}$",     "$\\hdots$",  "$\\psi_{1,1,j}$",
+   "$Video_1$","$\\vdots$",            "$\\vdots$",               "$\\vdots$",     "$\\vdots$",               "$\\vdots$",
+   "$Video_1$",    "$t_x$",       "$EmoDis_{1,1}$",  "$\\psi_{x,1,1}$",     "$\\hdots$",  "$\\psi_{x,1,j}$",
+   "$Video_2$",    "$t_0$",       "$EmoDis_{2,2}$",  "$\\psi_{0,2,1}$",     "$\\hdots$",  "$\\psi_{0,2,j}$",
+   "$Video_2$",    "$t_1$",       "$EmoDis_{2,2}$",  "$\\psi_{1,2,1}$",     "$\\hdots$",  "$\\psi_{1,2,j}$",
+   "$Video_2$","$\\vdots$",            "$\\vdots$",               "$\\vdots$",     "$\\vdots$",               "$\\vdots$",
+   "$Video_2$",    "$t_x$",       "$EmoDis_{2,2}$",  "$\\psi_{x,2,1}$",     "$\\hdots$",  "$\\psi_{x,2,j}$",
+   "$\\vdots$","$\\vdots$",            "$\\vdots$",               "$\\vdots$",     "$\\vdots$",               "$\\vdots$",
+   "$Video_i$",    "$t_0$",       "$EmoDis_{i,j}$",  "$\\psi_{0,i,1}$",     "$\\hdots$",  "$\\psi_{0,i,j}$",
+   "$Video_i$",    "$t_1$",       "$EmoDis_{i,j}$",  "$\\psi_{1,i,1}$",     "$\\hdots$",  "$\\psi_{1,i,j}$",
+   "$Video_i$","$\\vdots$",            "$\\vdots$",               "$\\vdots$",     "$\\vdots$",               "$\\vdots$",
+   "$Video_i$",    "$t_x$",       "$EmoDis_{i,j}$",  "$\\psi_{x,i,1}$",     "$\\hdots$",  "$\\psi_{x,i,j}$"
+  ) %>%
+  knitr::kable(
+    escape = FALSE, 
+    booktabs = TRUE, 
+    linesep = c('', '', '', '\\addlinespace', '', '', '', '\\addlinespace', '\\addlinespace', '', '', ''),
+    align=rep('c', 6)
+  ) %>%
+  kableExtra::kable_styling(font_size = 7) %>% 
+  kableExtra::column_spec(1, extra_css = "vertical-align:middle;")
+```
+
+**B**
+```{r}
+cs11 <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,1,1}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,1,j}}$"
+cs21 <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,2,1}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,2,j}}$"
+csi1 <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,i,1}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,i,j}}$"
+cs1j <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,1,j}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,1,j}}$"
+cs2j <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,2,j}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,2,j}}$"
+csij <- "$\\frac{\\sum_{x = 0}^{T}\\psi_{x,i,j}}{\\sum_{j = 1}^{J}\\sum_{x = 0}^{T}\\psi_{x,i,j}}$"
+
+code1 <- "$\\left\\{\\begin{matrix} EmoDis_{1,1} = EmoRec_{1,j}, 1\\\\ EmoDis_{1,1} \\neq EmoRec_{1,j}, 0 \\end{matrix}\\right.$"
+code2 <- "$\\left\\{\\begin{matrix} EmoDis_{2,2} = EmoRec_{2,j}, 1\\\\ EmoDis_{2,2} \\neq EmoRec_{2,j}, 0 \\end{matrix}\\right.$"
+codei <- "$\\left\\{\\begin{matrix} EmoDis_{i,j} = EmoRec_{i,j}, 1\\\\ EmoDis_{i,j} \\neq EmoRec_{i,j}, 0 \\end{matrix}\\right.$"
+
+tibble::tribble(
+    ~`$Video$`,~`$Emotion Displayed$`, ~`$CS Emotion Recognized_1$`,    ~`$\\hdots$`, ~`$CS Emotion Recognized_j$`,   ~`$Emotion Recognized$`, ~`$Emotion Classification$`,
+   "$Video_1$",      "$EmoDis_{1,1}$",                         cs11,     "$\\hdots$",                         cs1j,"$\\max(CS EmoRec_{1,j})$",                       code1, 
+   "$Video_2$",      "$EmoDis_{2,2}$",                         cs21,     "$\\hdots$",                         cs2j,"$\\max(CS EmoRec_{2,j})$",                       code2, 
+    "$\\vdots$",            "$\\vdots$",                   "$\\vdots$","$\\vdots$",                   "$\\vdots$",                "$\\vdots$",                  "$\\vdots$",
+   "$Video_i$",      "$EmoDis_{i,j}$",                         csi1,     "$\\hdots$",                         csij,"$\\max(CS EmoRec_{i,j})$",                       codei
+  ) %>% 
+  knitr::kable(
+    escape = FALSE, 
+    booktabs = TRUE, 
+    linesep = "",
+    align=rep('c', 7)
+  ) %>%
+  kableExtra::kable_styling(font_size = 7)
+```
+
+Note: $i$ is one of the 937 videos processed, $x$ is a video frame at $t_x$, $j$ is an emotion label among *anger*, *disgust*, *fear*, *happiness*, *sadness* and *surprise*, and $\psi$ is the value of the odds ratio for the frame $t_x$ and for the emotion label $j$.

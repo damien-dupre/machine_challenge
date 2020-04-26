@@ -1,0 +1,145 @@
+classifier1,classifier2,database,auc1,auc2,d_stat,p_val
+Affectiva,CrowdEmotion,"Posed
+Expressions",0.79,0.71,2.38,0.017
+Affectiva,CrowdEmotion,"Spontaneous
+Expressions",0.77,0.69,2.46,0.014
+Affectiva,Emotient,"Posed
+Expressions",0.79,0.75,1.07,0.285
+Affectiva,Emotient,"Spontaneous
+Expressions",0.77,0.77,-0.15,0.879
+Affectiva,Microsoft,"Posed
+Expressions",0.79,0.75,1.18,0.238
+Affectiva,Microsoft,"Spontaneous
+Expressions",0.77,0.81,-1.35,0.176
+Affectiva,MorphCast,"Posed
+Expressions",0.79,0.74,1.44,0.15
+Affectiva,MorphCast,"Spontaneous
+Expressions",0.77,0.71,1.74,0.081
+Affectiva,Neurodatalab,"Posed
+Expressions",0.79,0.73,1.68,0.094
+Affectiva,Neurodatalab,"Spontaneous
+Expressions",0.77,0.73,1.32,0.188
+Affectiva,VicarVision,"Posed
+Expressions",0.79,0.75,1.21,0.226
+Affectiva,VicarVision,"Spontaneous
+Expressions",0.77,0.81,-1.23,0.219
+Affectiva,VisageTechnologies,"Posed
+Expressions",0.79,0.73,1.7,0.09
+Affectiva,VisageTechnologies,"Spontaneous
+Expressions",0.77,0.76,0.25,0.799
+CrowdEmotion,Emotient,"Posed
+Expressions",0.71,0.75,-1.35,0.178
+CrowdEmotion,Emotient,"Spontaneous
+Expressions",0.69,0.77,-2.63,0.009
+CrowdEmotion,Microsoft,"Posed
+Expressions",0.71,0.75,-1.27,0.203
+CrowdEmotion,Microsoft,"Spontaneous
+Expressions",0.69,0.81,-3.82,< 0.001
+CrowdEmotion,MorphCast,"Posed
+Expressions",0.71,0.74,-1.06,0.29
+CrowdEmotion,MorphCast,"Spontaneous
+Expressions",0.69,0.71,-0.74,0.462
+CrowdEmotion,Neurodatalab,"Posed
+Expressions",0.71,0.73,-0.73,0.468
+CrowdEmotion,Neurodatalab,"Spontaneous
+Expressions",0.69,0.73,-1.2,0.232
+CrowdEmotion,VicarVision,"Posed
+Expressions",0.71,0.75,-1.22,0.221
+CrowdEmotion,VicarVision,"Spontaneous
+Expressions",0.69,0.81,-3.58,< 0.001
+CrowdEmotion,VisageTechnologies,"Posed
+Expressions",0.71,0.73,-0.75,0.452
+CrowdEmotion,VisageTechnologies,"Spontaneous
+Expressions",0.69,0.76,-2.24,0.025
+Emotient,Microsoft,"Posed
+Expressions",0.75,0.75,0.08,0.934
+Emotient,Microsoft,"Spontaneous
+Expressions",0.77,0.81,-1.23,0.218
+Emotient,MorphCast,"Posed
+Expressions",0.75,0.74,0.3,0.768
+Emotient,MorphCast,"Spontaneous
+Expressions",0.77,0.71,1.91,0.056
+Emotient,Neurodatalab,"Posed
+Expressions",0.75,0.73,0.64,0.525
+Emotient,Neurodatalab,"Spontaneous
+Expressions",0.77,0.73,1.43,0.151
+Emotient,VicarVision,"Posed
+Expressions",0.75,0.75,0.12,0.902
+Emotient,VicarVision,"Spontaneous
+Expressions",0.77,0.81,-1.05,0.296
+Emotient,VisageTechnologies,"Posed
+Expressions",0.75,0.73,0.56,0.573
+Emotient,VisageTechnologies,"Spontaneous
+Expressions",0.77,0.76,0.42,0.678
+Humans,Affectiva,"Posed
+Expressions",0.93,0.79,6.68,< 0.001
+Humans,Affectiva,"Spontaneous
+Expressions",0.97,0.77,8.98,< 0.001
+Humans,CrowdEmotion,"Posed
+Expressions",0.93,0.71,9.01,< 0.001
+Humans,CrowdEmotion,"Spontaneous
+Expressions",0.97,0.69,10.92,< 0.001
+Humans,Emotient,"Posed
+Expressions",0.93,0.75,7.31,< 0.001
+Humans,Emotient,"Spontaneous
+Expressions",0.97,0.77,8.55,< 0.001
+Humans,Microsoft,"Posed
+Expressions",0.93,0.75,7.7,< 0.001
+Humans,Microsoft,"Spontaneous
+Expressions",0.97,0.81,7.58,< 0.001
+Humans,MorphCast,"Posed
+Expressions",0.93,0.74,7.92,< 0.001
+Humans,MorphCast,"Spontaneous
+Expressions",0.97,0.71,10.12,< 0.001
+Humans,Neurodatalab,"Posed
+Expressions",0.93,0.73,8.08,< 0.001
+Humans,Neurodatalab,"Spontaneous
+Expressions",0.97,0.73,10.34,< 0.001
+Humans,VicarVision,"Posed
+Expressions",0.93,0.75,7.43,< 0.001
+Humans,VicarVision,"Spontaneous
+Expressions",0.97,0.81,7.49,< 0.001
+Humans,VisageTechnologies,"Posed
+Expressions",0.93,0.73,7.9,< 0.001
+Humans,VisageTechnologies,"Spontaneous
+Expressions",0.97,0.76,9.18,< 0.001
+Microsoft,MorphCast,"Posed
+Expressions",0.75,0.74,0.22,0.829
+Microsoft,MorphCast,"Spontaneous
+Expressions",0.81,0.71,3.19,0.001
+Microsoft,Neurodatalab,"Posed
+Expressions",0.75,0.73,0.55,0.582
+Microsoft,Neurodatalab,"Spontaneous
+Expressions",0.81,0.73,2.73,0.006
+Microsoft,VicarVision,"Posed
+Expressions",0.75,0.75,0.04,0.968
+Microsoft,VicarVision,"Spontaneous
+Expressions",0.81,0.81,0.17,0.863
+Microsoft,VisageTechnologies,"Posed
+Expressions",0.75,0.73,0.49,0.627
+Microsoft,VisageTechnologies,"Spontaneous
+Expressions",0.81,0.76,1.63,0.104
+MorphCast,Neurodatalab,"Posed
+Expressions",0.74,0.73,0.34,0.731
+MorphCast,Neurodatalab,"Spontaneous
+Expressions",0.71,0.73,-0.48,0.628
+MorphCast,VicarVision,"Posed
+Expressions",0.74,0.75,-0.17,0.865
+MorphCast,VicarVision,"Spontaneous
+Expressions",0.71,0.81,-2.89,0.004
+MorphCast,VisageTechnologies,"Posed
+Expressions",0.74,0.73,0.28,0.783
+MorphCast,VisageTechnologies,"Spontaneous
+Expressions",0.71,0.76,-1.51,0.13
+Neurodatalab,VicarVision,"Posed
+Expressions",0.73,0.75,-0.5,0.614
+Neurodatalab,VicarVision,"Spontaneous
+Expressions",0.73,0.81,-2.51,0.012
+Neurodatalab,VisageTechnologies,"Posed
+Expressions",0.73,0.73,-0.06,0.953
+Neurodatalab,VisageTechnologies,"Spontaneous
+Expressions",0.73,0.76,-1.03,0.303
+VicarVision,VisageTechnologies,"Posed
+Expressions",0.75,0.73,0.45,0.654
+VicarVision,VisageTechnologies,"Spontaneous
+Expressions",0.81,0.76,1.45,0.148

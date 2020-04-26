@@ -1,0 +1,183 @@
+---
+output: pdf_document
+geometry: margin=1.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{tabu}
+  - \usepackage{longtable}
+  - \usepackage{caption}
+---
+
+\captionsetup[table]{labelformat=empty}
+
+```{r setup-supp-tab, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE, 
+  fig.pos = "H")
+# disable sci number format
+options(scipen = 999)
+options(knitr.kable.NA = '')
+# tools
+library(here)
+library(papaja)
+library(captioner)
+library(glue)
+# data wrangling
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
+# statistical modeling
+library(lsr)
+library(irr)
+library(pROC)
+library(caret)
+library(xgboost)
+# result plots
+library(ggpubr)
+library(ggplot2)
+library(plotROC)
+library(gtable)
+# tables
+library(knitr)
+library(kableExtra)
+# constant variables
+emotion_list <- c(
+  "anger", 
+  "disgust", 
+  "fear", 
+  "happiness", 
+  "sadness", 
+  "surprise"
+  )
+
+classifier_level <- c(
+  "Humans",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+
+name_convention_recode <- c(
+  "Humans" = "Human Observers",
+  "Affectiva" = "Affectiva",
+  "CrowdEmotion" = "CrowdEmotion",
+  "Emotient" = "Emotient",
+  "Microsoft" = "Microsoft",
+  "MorphCast" = "MorphCast",
+  "Neurodatalab" = "Neurodata Lab",
+  "VicarVision" = "VicarVision",
+  "VisageTechnologies" = "Visage Technologies"
+  )
+```
+
+```{r data-supp-tab}
+# humans -----------------------------------------------------------------------
+humans_data <- here::here("data/humans_data.RDS") %>% 
+  readr::read_rds() 
+
+humans_scores <- here::here("data/humans_scores.rds") %>% 
+  readr::read_rds()
+# machines ---------------------------------------------------------------------
+machines_data <- here::here("data/machines_data.rds") %>% 
+  readr::read_rds()
+
+machines_scores <- here::here("data/machines_scores.rds") %>% 
+  readr::read_rds()
+# all --------------------------------------------------------------------------
+all_data <- here::here("data/all_data.rds") %>% 
+  readr::read_rds()
+```
+
+```{r}
+accuracy_score <- function(df){
+  df_table <- table(df$video_emotion, df$label_emotion)
+  emotions <- c(emotion_list, "other","error", "undetermined")
+  emo_table <- matrix(
+    0,
+    length(emotions),
+    length(emotions),
+    dimnames = list(emotions, emotions))
+  emo_table[row.names(df_table), colnames(df_table)] <- df_table
+  caret::confusionMatrix(as.table(emo_table)) %>%
+    magrittr::use_series(byClass) %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column("Emotion") %>%
+    dplyr::mutate(Emotion = gsub(
+      pattern = "Class: ",
+      replacement = "",
+      x = Emotion)
+    )
+}
+
+human_accuracy_score <- humans_data %>%
+  dplyr::group_by(system, database) %>%
+  dplyr::group_modify(~ accuracy_score(.x))
+
+automatic_accuracy_score <- machines_data %>%
+  dplyr::group_by(system, database) %>%
+  dplyr::group_modify(~ accuracy_score(.x))
+
+accuracy_score <- dplyr::bind_rows(human_accuracy_score, automatic_accuracy_score)%>%
+  dplyr::filter(Emotion != "other") %>%
+  dplyr::filter(Emotion != "error") %>%
+  dplyr::filter(Emotion != "undetermined") %>%
+  dplyr::mutate(Classifier = factor(
+    x = system,
+    levels = classifier_level,
+    labels = name_convention_recode
+  )) %>%
+  dplyr::ungroup() %>% 
+  dplyr::select(
+    Classifier,
+    Expressions = database,
+    Emotion,
+    TPR = Sensitivity,
+    PPV = Precision,
+    TNR = Specificity,
+    F1
+  )
+```
+
+```{r results="asis"}
+accuracy_score %>% 
+  dplyr::filter(Expressions == "Posed\nExpressions") %>%
+  dplyr::select(-Classifier, -Expressions) %>% 
+  knitr::kable(
+    format = "latex",
+    caption = "S5 Table. Performance indices for human observers and automatic classifiers by emotion in the context of posed expressions.",
+    booktabs = TRUE,
+    digits = 2,
+    linesep = "",
+    escape = FALSE,
+    align = c("l", rep("c", 4))
+  ) %>%
+  kableExtra::kable_styling(
+    latex_options = "HOLD_position",
+    font_size = 8,
+    full_width = FALSE
+  ) %>%
+  kableExtra::pack_rows("Human Observers", 1, 6) %>%
+  kableExtra::pack_rows("Affectiva", 7, 12) %>%
+  kableExtra::pack_rows("CrowdEmotion", 13, 18) %>%
+  kableExtra::pack_rows("Emotient", 19, 24) %>%
+  kableExtra::pack_rows("Microsoft", 25, 30) %>%
+  kableExtra::pack_rows("MorphCast", 31, 36) %>%
+  kableExtra::pack_rows("Neurodata Lab", 37, 42) %>%
+  kableExtra::pack_rows("VicarVision", 43, 48) %>%
+  kableExtra::pack_rows("Visage Technologies", 49, 54) %>%
+  kableExtra::column_spec(1, width = "12em") %>%
+  kableExtra::column_spec(2:5, width = "6em")
+
+```
+

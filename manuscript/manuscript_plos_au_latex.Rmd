@@ -1,0 +1,811 @@
+---
+title: A performance comparison of eight commercially available automatic classifiers for facial affect recognition
+author:
+  - name: Damien Dupré
+    email: damien.dupre@dcu.ie
+    affiliation: Dublin City University
+    corresponding: damien.dupre@dcu.ie
+  - name: Eva G. Krumhuber
+    email: e.krumhuber@ucl.ac.uk
+    affiliation: University College London
+  - name: Dennis Küster
+    email: dkuester@uni-bremen.de
+    affiliation: [University of Bremen, Jacobs University Bremen]
+  - name: Gary J. McKeown
+    email: g.mckeown@qub.ac.uk
+    affiliation: Queen’s University Belfast
+address:
+  - code: Dublin City University
+    address: Business School, Dublin City University, Dublin, Republic of Ireland
+  - code: University College London
+    address: Department of Experimental Psychology, University College London, London, United Kingdom
+  - code: University of Bremen
+    address: Department of Mathematics and Computer Science, University of Bremen, Bremen, Germany
+  - code: Jacobs University Bremen
+    address: Department of Psychology and Methods, Jacobs University Bremen, Bremen, Germany
+  - code: Queen’s University Belfast
+    address: Department of Psychology, Queen’s University Belfast, Belfast, United Kingdom
+
+abstract: |
+  In the wake of rapid advances in automatic affect analysis, commercial automatic classifiers for facial affect recognition have attracted considerable attention in recent years. While several options now exist to analyze dynamic video data, less is known about the relative performance of these classifiers, in particular when facial expressions are spontaneous rather than posed. In the present work, we tested eight out-of-the-box automatic classifiers, and compared their emotion recognition performance to that of human observers. A total of 937 videos were sampled from two large databases that conveyed the basic six emotions (happiness, sadness, anger, fear, surprise, and disgust) either in posed (BU-4DFE) or spontaneous (UT-Dallas) form. Results revealed a recognition advantage for human observers over automatic classification. Among the eight classifiers, there was considerable variance in recognition accuracy ranging from 48 \% to 62 \%. Subsequent analyses per type of expression revealed that performance by the two best performing classifiers approximated those of human observers, suggesting high agreement for posed expressions. However, classification accuracy was consistently lower (although above chance level) for spontaneous affective behavior. The findings indicate potential shortcomings of existing out-of-the-box classifiers for measuring emotions, and highlight the need for more spontaneous facial databases that can act as a benchmark in the training and testing of automatic emotion recognition systems. We further discuss some limitations of analyzing facial expressions that have been recorded in controlled environments.
+
+author_summary: |
+  Dr. Damien Dupré is assistant professor in the Business School at Dublin City University, Republic of Ireland. His domain of expertise lies in multivariate time series analysis and trend extraction for supervised and unsupervised machine learning classification.
+  
+  Dr. Eva Krumhuber is associate professor in the Department of Experimental Psychology at University College London, United Kingdom, with research interests in the social-cognitive and affective processes of human perception and behavior. She has published widely within the field of psychology and computer science, and currently serves as Associate Editor of the *Journal of Nonverbal Behavior*, and *Frontiers in Psychology: Personality and Social Psychology*.
+  
+  Dr. Dennis Küster obtained his PhD under the supervision of Prof. Dr. Arvid Kappas at Jacobs University Bremen, Germany. He is now a senior researcher in the Computer Science Department (Cognitive Systems Lab) at the University of Bremen, where he studies emotions using an interdisciplinary approach. His research interests revolve around the topic of emotions from a variety of angles, including the psychophysiology of emotions, affect sensing in Human-Robot-Interaction (HRI), and emotion expression in Human-Computer-Interaction (HCI).
+
+  Dr. Gary McKeown is senior lecturer in the School of Psychology at Queen’s University Belfast, United Kingdom. His research interests focus on social and communicative interactions, social signal processing and affective computing, laughter and humor, the evolution of human communication and language, and embodied conversational agents. He is Associate Editor of the *IEEE Transactions on Affective Computing*.
+
+bibliography: [references.bib, r-references.bib]
+output:
+  bookdown::pdf_book:
+    base_format: rticles::plos_article
+csl: plos.csl
+keep_tex: yes
+#output: papaja::apa6_word
+
+header-includes:
+  - \usepackage{float}
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{threeparttable}
+  - \floatplacement{figure}{H}
+  - \floatplacement{table}{H}
+  - \usepackage{caption}
+  #- \usepackage{lineno}
+  #- \pagewiselinenumbers
+  #- \captionsetup{labelfont=bf,textfont=bf}
+---
+<!-- \nolinenumbers -->
+\nolinenumbers
+```{r setup, include = FALSE}
+# knitr.table.format = "latex" not necessary
+knitr::opts_chunk$set(
+  cache.extra = knitr::rand_seed, 
+  message = FALSE, 
+  warning = FALSE, 
+  error = FALSE, 
+  echo = FALSE)
+# disable sci number format
+options(scipen = 999)
+options(knitr.kable.NA = '')
+# tools
+library(here)
+library(papaja)
+library(captioner)
+library(glue)
+# data wrangling
+library(tidyverse)
+# statistical modeling
+library(irr)
+library(pROC)
+# result plots
+library(ggpubr)
+library(plotROC)
+library(gtable)
+# tables
+library(knitr)
+library(kableExtra)
+
+# constant variables
+emotion_list <- c(
+  "anger", 
+  "disgust", 
+  "fear", 
+  "happiness", 
+  "sadness", 
+  "surprise"
+  )
+
+name_convention_classifiers <- c(
+  "Human Observers",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient",
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "Visage Technologies"
+)
+
+name_convention_line <- c(
+  "Human Observers",
+  "Overall Automatic\nClassification",
+  "Emotient\n(Facet)",
+  "VicarVision\n(FaceReader)",
+  "Neurodatalab\n(EmotionRecognition)",
+  "Visage Technologies\n(FaceAnalysis)",
+  "Microsoft\n(Cognitive Services)",
+  "Affectiva\n(Affdex)",
+  "MorphCast\n(EmotionalTracking)",
+  "CrowdEmotion\n(FaceVideo)"
+)
+
+name_convention_recode <- c(
+  "Humans" = "Human Observers",
+  "Affectiva" = "Affectiva",
+  "CrowdEmotion" = "CrowdEmotion",
+  "Emotient" = "Emotient",
+  "Microsoft" = "Microsoft",
+  "MorphCast" = "MorphCast",
+  "Neurodatalab" = "Neurodata Lab",
+  "VicarVision" = "VicarVision",
+  "VisageTechnologies" = "Visage Technologies"
+  )
+classifier_automatic <- c(
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+classifier_level <- c(
+  "Humans",
+  "Affectiva",
+  "CrowdEmotion",
+  "Emotient", 
+  "Microsoft",
+  "MorphCast",
+  "Neurodatalab",
+  "VicarVision",
+  "VisageTechnologies"
+  )
+color_scheme <- c(
+  "#e41a1c",
+  "#377eb8",
+  "#4daf4a",
+  "#984ea3",
+  "#ff7f00",
+  "#ffff33",
+  "#a65628",
+  "#f781bf",
+  "#999999"
+  )
+
+# R package references
+r_refs(file = "r-references.bib")
+```
+
+```{r captions, include=FALSE}
+table_nums_s <- captioner::captioner(prefix = "S", auto_space = FALSE)
+table_nums_s(name = "math-humans")
+table_nums_s(name = "math-automatic")
+table_nums_s(name = "roc-test-posed")
+table_nums_s(name = "roc-test-spontaneous")
+table_nums_s(name = "database-accuracy-posed")
+table_nums_s(name = "database-accuracy-spontaneous")
+#
+fig_nums_s <- captioner::captioner(prefix = "S", auto_space = FALSE)
+fig_nums_s(name = "confusion-matrix")
+fig_nums_s(name = "observers-combination")
+```
+
+```{r data}
+# humans -----------------------------------------------------------------------
+humans_data <- here::here("data/humans_data.rds") %>% 
+  readr::read_rds() 
+
+humans_scores <- here::here("data/humans_scores.rds") %>% 
+  readr::read_rds()
+# machines ---------------------------------------------------------------------
+machines_data <- here::here("data/machines_data.rds") %>% 
+  readr::read_rds()
+
+machines_scores <- here::here("data/machines_scores.rds") %>% 
+  readr::read_rds()
+# all --------------------------------------------------------------------------
+all_data <- here::here("data/all_data.rds") %>% 
+  readr::read_rds()
+# roc test ---------------------------------------------------------------------
+roc_test_res <- here::here("data/roc_test_res.csv") %>% 
+  readr::read_csv()
+```
+
+(ref:database-accuracy) **Emotion recognition performance indices for human observers and automatic classifiers by type of expression.** 
+(ref:plot-classifier) **Mean True Positive recognition performance of human observers and automatic classifiers.** Errors bars represent 95\% Confidence Interval.
+(ref:roc-curve) **Receiver operating characteristic (ROC) curves and corresponding Area Under the Curve (AUC) depicting the True Positive Rate (TPR) against the False Positive Rate (FPR) for human observers and automatic classifiers separately for posed and spontaneous expressions.** The dotted diagonal line in the ROC space indicates chance performance.
+
+# Introduction {-}
+
+The ability to accurately detect what other people are feeling is an important element of social interaction [@keltner2016expression]. Only if we can perceive the affective state of an individual, will we be able to communicate in a way that corresponds to that experience. In the quest for finding a ‘window to the soul’ that reveals a view onto another’s emotion, the significance of the face has been a focus of popular and scientific interest alike. Since the publication of Charles Darwin’s book *The Expression of the Emotions in Man and Animals* [@darwin1872expression], facial behavior has been considered to play an integral role in signaling emotional experience. According to Darwin, facial movements became associated with emotions as biological remnants of actions that once served survival-related purposes [@parkinson2005facial]. Whilst he did not postulate an intrinsic link between emotions and facial expressions, his work became fundamental to the emotion-expression view of Basic Emotion Theory (BET). Originally proposed by Tomkins [@tomkins1962affect], BET assumes that there are a limited number of emotions (e.g., happiness, sadness, anger, fear, surprise, and disgust) that are characterized by signature expressions [@ekman1969repertoire; @ekman1972universal]. The emotions with which these expressions are associated are claimed to be basic, primary, or fundamental in the sense that they form the core emotional repertoire [@ekman1972universal; @ekman1992argument]. Facial behavior, accordingly, has been seen as a “readout” [@buck1984communication] of these subjective feeling states, comprising specific configurations of facial muscle actions that are prototypical, innate, and universal. 
+
+In recent years, the traditional view that certain emotional states are signaled by a matching facial expression has been challenged. Even though BET has obtained popular support [see @keltner2016expression], evidence for a unique emotion-expression link is inconclusive [@barrett2019emotional]. As such, it is possible for an individual to feel an emotion without expressing it. Alternatively, not every facial expression may communicate an affective state [@duran2017coherence; @kraut1979social]. Debates about the role and function of facial movements have led to alternative frameworks such as the social constructivist approach [e.g., @averill1980constructivist; @averill2012future; @barrett2006structure; @fridlund1994human; @russell1997facial; for a review see @kappas2013facial]. In this view, faces are best conceived of as tools displaying signals in social interaction that can vary across cultures, situations, and individuals [@crivelli2018facial]. Although contemporary views of emotion consider facial activity within a rich set of socio-cultural and contextual factors, BET has been so far the primary focus of scientific research.
+
+Inspired by the vision of an emotionally intelligent machine, efforts have been targeted towards computer systems that can detect, classify, and interpret human affective states. This involves the ability to recognize emotional signals that are emitted by the face [@picard2002computers; @poria2017review], post-hoc from video recordings as well as in real-time from a live stream camera [@gunes2010automatic]. In the wake of rapid advances in computer vision and machine learning, competing computational approaches now exist that focus on the analysis of facial expressions. Automatic facial affect recognition has significant advantages in terms of time and labor costs over human coding [@cohn2014automated] and has been envisioned to give rise to numerous applications in fields as diverse as security, medicine, education, telecommunication, automotive, and marketing industries [@picard1997affective; @kuster2020opportunities]. While the computational modelling of emotional expressions forms a narrow, although increasingly common, approach, the ultimate aim is to build human-computer interfaces that not only detect but also respond to emotional signals of the user [@schroder2012automatic; @d2015review]. To this end, computer algorithms generally follow three steps in classifying emotions from human facial behavior. First, they identify and track one or more faces in a video stream based on morphological features and their configuration. Second, they detect facial landmarks and evaluate their changes over time. Finally, they classify the configuration of landmarks according to specific labels, categories, or dimensions [@sariyanidi2015automatic]. It is within the context of the last step where BET has exerted a profound impact on how expressive behavior is analyzed. Despite inconclusive scientific evidence in support the BET [@barrett2019emotional], most computer models have adopted its perspective by focusing on the six basic emotions [@calvo2010affect; @gunes2016automatic]. That is, they output a categorical emotion label from a limited set of candidate labels (i.e., happiness, sadness, anger, fear, surprise, and disgust), derived from the assumption that emotional expressions correspond to prototypical patterns of facial activity [@ekman1992argument].
+
+In the last three decades, substantial progress has been made in the area of automated facial expression analysis by recognizing BET’s six categories. Zeng, Pantic, Roisman and Huang [@zeng2009survey], for example, reviewed 29 vision-based affect detection methods, pointing towards the proliferation of programs and platforms that are concerned with classifying distinct emotions. As demonstrated by the first Facial Expression Recognition and Analysis (FERA) challenge, emotion recognition by the top performing algorithm was already being reported in 2011 at a rate of 84% [@valstar2012meta]. Together with recent news reports that forecast a bright future for emotionally intelligent machines [e.g., @murgia2019affective; @perez2019recognizing], the impression arises that the automatic inference of basic emotions may soon be a solved problem [@martinez2017automatic]. The majority of past efforts, however, relied on in-house techniques for facial affect recognition. As such, they involve classification algorithms that have been developed and benchmarked in individual laboratories, often using proprietary databases of emotion-related images and videos. Historically, those were not easily accessible for systematic interdisciplinary and cross-laboratory research. Given that automated methods for measuring facial expression patterns have now matured, 16 providers of commercially available classifiers have recently been identified [@dupre2018accuracy; @deshmukh2017survey]. These classifiers are marketed for monitoring and evaluating human affective states across a range of domains. As a consequence, their performance can be assessed more freely and openly. Interestingly, however there exists little validation research that has investigated the overall and relative performance of these automatic classifier.
+
+In a study by Lewinski, den Uyl and Butler [@lewinski2014automated], the commercial FaceReader classifier (VicarVision) was tested on static facial images of posed expressions, achieving a recognition rate of 89%. Using similar sets of static basic emotion stimuli, Stöckli et al. [@stockli2018facial] reported performance indices of 97% and 73% for Facet (Emotient) and Affdex (Affectiva), respectively. While Facet was found to exceed human judges in classifying emotions on these standardized sets of static emotional portrayals, its accuracy dropped to 63% for dynamic stimuli depicting real-life facial expression imitations. A performance index of 80% was recently reported using FaceReader in the context of dynamic expressions that were enacted to also mimic a basic emotion display [@skiendziel2019assessing]. When testing the software CERT (a precursor of Facet) on subtle dynamic (i.e., non-prototypical) facial stimuli, Yitzhak et al. [@yitzhak2017gently] found that emotion classification accuracy for subtle expressions (21%) was significantly reduced in comparison to highly intense and stereotypical expressions (89%). Such a large performance drop did not occur for human observers (79% vs. 88%), who were able to identify the relevant emotion expression in the absence of prototypical facial movements. Importantly, none of the above studies examined emotion recognition in spontaneous affective displays.
+
+Given that there are fundamental differences between posed and spontaneous stimuli in their appearance and timing [for a review see @calvo2016perceptual], it is important to draw a distinction between the two expression types. Spontaneous displays (similar to posed ones) may occur in a controlled setting (often in the laboratory), but the resulting emotional expression is induced (i.e., via presentation of emotionally laden pictures/movies) rather than instructed [@scherer2010use]. As such, they have distinct temporal and morphological profiles due to differences in emotion elicitation; the technical features (e.g., camera angle, head movement, illumination) remain largely the same. Subjecting only deliberately displayed expressions to automatic classification, analysis, and benchmarking may provide insufficiently robust validation results. Consequently, affective analyses based on deliberate and often prototypical displays are likely to be substantially less reliable with respect to spontaneous expressive behavior. This issue is further exacerbated by the general trend to train computer algorithms on posed expressions that are highly intense and homogeneous [@pantic2007machine]. The third step in automated facial expression analysis typically involves a training set of human-labelled stimuli to make inferences about a much larger population of faces and facial expressions in which they occur [@zeng2009survey]. Unless a computer system is validated on posed as well as spontaneous facial actions, its use in the public and private sector will likely prove inadequate. As the affective computing market is projected to grow considerably, with growth estimations reaching \$41 billion by 2022 [@knowledge2019global] and \$90 billion by 2024 [@sawers2019realeyes], a systematic multi-system evaluation of commercial automatic classifiers using both types of emotional expressions is needed.
+
+The present research aims to fill this gap by testing `r length(classifier_automatic)` commercially available automatic classifiers and comparing their recognition performance to human observers. To this end, facial stimuli were sampled from two large databases that depict emotions either in a posed or spontaneous form. All of the examined expressions are dynamic to reflect the realistic nature of human facial behavior [@krumhuber2013effects; @krumhuber2016perceptual]. Following common approaches in the development of these classifiers, itself a contentious issue beyond the scope of this article, we focused on the recognition of the six basic emotions identified by BET. 
+
+To assess the emotional content of expressions, participants selected the emotion label that best fits with a stimulus (forced choice). We predicted the classification accuracy of posed stimuli to exceed that of spontaneous ones, with generally reduced performance of the automatic classifiers compared to human observers in the context of spontaneously occurring expressions. Given the predominance of posed datasets for the training of classifiers, confusion patterns found for automatic classification should be more similar to those produced by human observers when analyzing deliberate affective displays.
+
+# Materials and methods {-}
+
+For the present research, two well-known dynamic facial expression databases were chosen: *BU-4DFE* [@yin2008high] and *UT-Dallas* [@o2005video]. Both are annotated in terms of emotion categories, and contain either posed or spontaneous facial expressions. To evaluate the accuracy of emotion recognition, we compared the performance achieved by human judges with those of `r length(classifier_automatic)` commercially available automatic classifiers. To this end, we first conducted a judgment study with naive human observers. Second, we assessed the performance of the automatic classifiers on the same databases, and employed standard metrics for all human versus automatic classifier-based comparisons.
+
+## Stimulus material {-}
+
+Based on a recent review of 22 dynamic facial expression databases [@krumhuber2017review], we selected two datasets that are publicly available to the research community. *BU-4DFE* and *UT-Dallas* both contain large amounts of videos portraying the six basic emotions. Besides conceptual differences in elicitation method and thematic approaches, stimuli from the two databases are similar in the sense that they depict frontal head shots at close distance with comparable expressive intensity envelopes, a static camera view, and adequate illumination. All videos are rendered in color and captured with a frame-rate of 25 frames per second. While *BU-4DFE* contains particularly high-resolution video data (1094x1392; *UT-Dallas*: 720x480), both provide adequate resolution for facial analysis that meets the expected requirements for automatic classification [@krumhuber2017review].
+
+The *BU-4DFE* database contains videos of posed expressions recorded from 78 individuals. They represent male and female subjects, mostly undergraduates, graduates and faculty members with an age range of 18-45 years, recruited from the State University of New York at Binghamton, USA. The majority of subjects are White, although, the database includes some Asians, Blacks, and Hispanics. Each subject was instructed by a psychologist to gradually portray the six basic emotions in distinct sequences. As one video is missing from the database, a set of 467 videos was processed: anger (78), disgust (78), fear (78), happiness (78), sadness (78), and surprise (77). Expression sequences lasted on average 4s (\textit{M} = 4.05, \textit{SD} = 0.43), and started and ended with a neutral face. 
+
+The *UT-Dallas* database is substantially larger and consists of videos of spontaneous expressions recorded from 292 individuals and a total of 961 videos with basic emotion labels recorded from different camera angles. They represent male and female students with an age range of 18-25 years, recruited from the University of Texas at Dallas, USA. The majority of subjects are White, including some Asians, Blacks, and Hispanics. Each subject watched a 10-minute video that included scenes from different movies and television programs intended to elicit distinct emotions. Selected emotive instances were extracted by the database authors, with expressive behavior corresponding to the six basic emotions. Given the lack of any validation data for this database, the assignment of a video to an emotion category reflects the subjective judgment of the database authors. We selected the first out of two sets (up to participant ID 4660) from the database to obtain a stimulus set of comparable size. This resulted in a total of 470 videos with an uneven amount of videos per emotion category: anger (3), disgust (119), fear (13), happiness (196), sadness (38), and surprise (101). Given the complex nature of spontaneous behavior, videos can include more than one type of facial expression [@o2005video]. Spontaneous expressions lasted on average 6s (\textit{M} = 6.11, \textit{SD} = 0.68), and started/ended with a neutral or expressive face. For a comprehensive review of both databases, readers are referred to [@krumhuber2017review].
+
+## Human observers {-}
+
+```{r humans-data-descriptive}
+t_test_genuineness <- t.test(Genuineness ~ database, data = humans_data, var.equal=TRUE) %>% 
+  papaja::apa_print()
+
+descriptive_jugements <- humans_data %>%
+  dplyr::group_by(database) %>%
+  dplyr::summarise(
+    `m_genuineness` = mean(Genuineness,na.rm = TRUE),
+    `sd_genuineness` = sd(Genuineness,na.rm = TRUE)
+  ) %>%
+  dplyr::mutate_if(is.numeric,round,2) %>% 
+  as.data.frame()
+```
+
+Fourteen participants (10 females, \textit{M}age = 24.0, \textit{SD} = 6.62), recruited via email from the academic community in Germany, Turkey, and the UK, volunteered to participate for free or a monetary reward in an online study. The study was approved by the departmental ethics committee at University College London, UK. Informed consent was obtained prior to participation. Data management and data treatment were performed under the European GDPR legislation. Participants were told that short videos of facial expressions would be presented. Their task was to indicate the label which best described the displayed expression. They were instructed to watch all 937 videos attentively and with sufficient rest periods. Videos were shown in an individually randomized order and with scrambled file names to avoid guessing of the correct labels.
+
+In line with common categorization paradigms, emotion recognition was assessed through a forced-choice task. This required participants to make a selection among the following emotion labels: *anger*, *disgust*, *fear*, *happiness*, *sadness*, *surprise*, *no/other emotion*. We opted for this response format to allow for direct comparability with the automatic classifiers' recognition data using pre-specified emotion labels. As shown in prior research, adding a *no/other emotion* escape option does not change the overall level of target emotion recognition [@krumhuber2019emotion]. Instead, it only prevents agreement on incorrect labels when the target emotion label is absent [@frank2001forced].
+
+In addition to the standard classification task, participants were asked to evaluate each video on perceived genuineness of the expressed emotion, using a 7-point Likert scale (1 -*very posed*, 7 -*very genuine*). An expression was defined as genuine if the person is truly feeling the emotion, in contrast to a posed expression which is simply put on the face in the absence of a corresponding emotion. Results showed that participants judged posed expressions as significantly less genuine than spontaneous ones (BU-4DFE: \mbox{\textit{M} = `r descriptive_jugements[descriptive_jugements$database == "Posed\nExpressions", "m_genuineness"]`}, \mbox{\textit{SD} = `r descriptive_jugements[descriptive_jugements$database == "Posed\nExpressions", "sd_genuineness"]`}; UT-Dallas: \mbox{\textit{M} = `r descriptive_jugements[descriptive_jugements$database == "Spontaneous\nExpressions", "m_genuineness"]`}, \mbox{\textit{SD} = `r descriptive_jugements[descriptive_jugements$database == "Spontaneous\nExpressions", "sd_genuineness"]`}; `r t_test_genuineness$statistic`, \mbox{\textit{d} = `r lsr::cohensD(Genuineness ~ database, data = humans_data) %>% round(2)`}), thereby validating the two different emotion elicitation approaches for database construction.
+
+## Automatic classification {-}
+
+The 937 video stimuli (467 BU-4DFE, 470 UT-Dallas) were submitted to automatic facial expression analysis by the following eight automatic classifiers: Affectiva's Affdex, CrowdEmotion's FaceVideo, Emotient's Facet, Microsoft's Cognitive Services, MorphCast's EmotionalTracking, Neurodata Lab's EmotionRecognition, VicarVison's FaceReader and VisageTechnologies' FaceAnalysis. These automatic classifiers can be used either through an Application Programming Interface (API), a Software Development Kit (SDK) or a software platform. All of them offer a prototypical basic emotion approach by classifying facial expressions in terms of the basic six emotions (anger, disgust, fear, happiness, sadness, and surprise).
+
+*Affdex* (SDK v3.4.1) was developed by Affectiva which is a spin-off company resulting from the research activities of the MIT Media Lab created in 2009 [@picard2011measuring]. At present, it is distributed by Affectiva (API and SDK) as well as iMotions (SDK integrated in a software platform). Affdex’s algorithm uses Histogram of Oriented Gradient (HOG) features and Support Vector Machine classifiers for facial expression recognition [@mcduff2016affdex].
+
+*FaceVideo* (API v1.0) was developed by the company CrowdEmotion founded in 2013. Its algorithm uses Convolutional Neural Networks, allowing the recognition of the six basic emotions plus neutral. 
+
+*Facet* (SDK v6.3) was originally developed by Emotient and distributed by iMotions in its software suite. Initially a spin-off company by the University of California San Diego [@bartlett2005recognizing], Emotient was bought by Apple Inc. in 2017. For this reason, Facet is no longer commercially available, but existing licences are still supported by iMotions.
+
+*Cognitive Services: Face* (API v1.0) was developed by the company Microsoft on its Azure platform and first released in 2015. It provides a suite of artificial intelligence tools for face, speech, and text analysis.
+
+*EmotionalTracking* (SDK v1.0) was developed by the company MorphCast founded in 2013. EmotionalTracking SDK is a JavaScript engine requiring less than 1MB, that works directly on mobile browsers (i.e, without remote server and API processing). 
+
+*EmotionRecognition* (API v1.0) was developed by the company Neurodata Lab founded in 2016. Neurodata Lab provides a suite of tools for emotion recognition or annotation experiments such as face recognition, speaker diarization, body pose estimation, heart rate and respiration rate tracking. Neurodata Lab's EmotionRecognition is available both in API and SDK.
+
+*FaceReader* (software v7.0) was developed by VicarVison and is now distributed by Noldus [@lewinski2014automated]. Initially presented in 2005 [@den2005facereader], the software uses Active Appearance Models for face modelling and Convolutional Neural Networks for facial expression classification [@gudi2015deep]. All default settings were used for the video processing.
+
+*FaceAnalysis* (SDK v1.0) was developed by the company Visage Technologies founded in 2002. Visage Technologies provides solutions for facial expression recognition as well as for ID verification using face recognition.
+
+For all computer-based systems, performance indicators as reported in the present research are based on the respective version indicated above. Results may be subject to change with the release of newer versions. Because the type of output is not exactly the same in each system, emotion recognition results were rescaled to the odds ratios of recognition probability ranging from 0 to 1.
+
+## Data analysis {-}
+
+The data analysis focuses on a comparison in emotion recognition performance between human observers and each of the eight automatic classifiers. It is important to note that classification outputs differ slightly between humans and the machine. While human observers are selecting an emotion label per video, automatic classifiers are providing a recognition odds ratio for every emotion label frame by frame. Therefore, two separate metrics were employed to identify the emotion recognized based on the calculation of a confidence score.
+
+For the human observer data, the emotion recognition index corresponds to the emotion with the largest human confidence score among the six emotion labels (i.e.,	the label chosen by the highest number of human observers). As such, the number of correctly classified videos within an emotion category is divided by the total number of videos per emotion category aggregated across all human observers. The process to determine the recognized emotion label follows the equation \@ref(eq:one) for each video:
+
+\begin{equation}
+{EmoRec_{i,j}} = \max\left(\frac{1}{K}\sum_{k=1}^{K}EmoRec_{i,j,k}\right)(\#eq:one)
+\end{equation}
+
+where $i$ is a judged video, $j$ is a category of emotion recognized (EmoRec), $k$ is the number of human observers choosing the label $j$, and $K$ is the total number of human observers for the video $i$.
+
+In the context of the automatic classifiers’ data, the emotion recognition index corresponds to the emotion with the highest recognition confidence score among the six emotion labels. As such, it reflects the number of videos within an emotion category for which a given automatic classifier correctly indicated the highest recognition confidence score, divided by the total number of videos per emotion category. The automatic recognition confidence score [@dente2017measures] corresponds to the sum of the odds ratios for a specific emotion (e.g., happiness) aggregated per video-frame relative to the sum of the odds ratios for all other emotions (e.g., anger, disgust, fear, sadness, surprise) [@dente2017measures]. The process to determine the recognized label follows the equation \@ref(eq:two) for each video:
+
+\begin{equation}
+{EmoRec_{i,j}} = \max\left(\frac{\sum_{x = 0}^{T}\psi_{x,i,j}}{\sum_{j = 1}^{J}\sum_{x = 0}^{T}\psi_{x,i,j}}\right)(\#eq:two)
+\end{equation}
+
+where $i$ is a processed video, $j$ is a category of emotion recognized (EmoRec), $t_x$ corresponds to the timestamp of the processed video and $\psi_{x,i,j}$ the value of the odds ratio for the frame $t_x$ and for the emotion label $j$ such as $\psi_{x,i,j} = p_{x,i,j}/(1 - p_{x,i,j})$.
+
+For human observers and for automatic classifiers, the predicted emotion is the emotion having the highest confidence score among the six emotions. By selecting the aggregated maximum confidence score as the indicator for emotion recognition, it is possible that more than one emotion label applies to the same video if they share identical overall confidence scores; in practice this occurred very rarely (`r fig_nums_s("confusion-matrix", display = "cite")` Fig). 
+
+A comparison is then performed between both the humans’ subjectively recognized emotion label and the automatic classifiers’ declared "recognized" emotion label with the corresponding emotion label for that facial expression [@sokolova2009systematic]. If the predicted label (by human observers or automatic classifiers) matches the label assigned to the video, then the recognition is accurate. Otherwise, it is inaccurate. A detailed overview of the metrics for determining the confidence score, the recognized emotion label, and the emotion classification score per video is provided in `r table_nums_s("math-humans", display = "cite")` Table (human observers) and `r table_nums_s("math-automatic", display = "cite")` Table (automatic classifiers). The analysis of recognition accuracy per video allows a comparison between the classifiers' overall accuracy at a dataset level regardless of differences for specific emotions.
+
+The classifiers’ pattern of accuracy can be evaluated by computing their Receiver Operating Characteristic (ROC) curve and the corresponding Area Under the Curve (AUC). The ROC curve and AUC values are obtained for each classifier by comparing the confidence score for the predicted label with its recognition accuracy (i.e., accurate recognition coded as 1 vs. inaccurate recognition coded as 0). In this context, the ROC curve is an indicator of the classifiers’ confidence in accurately recognizing an expression. A good classifier will accurately recognize expressions with high confidence and inaccurately recognize expressions with low confidence. In contrast, a poor classifier will inaccurately recognize expressions with high confidence and accurately recognize expressions with low confidence. The corresponding AUCs are the probability that a classifier will be more confident in accurately recognizing a facial expression. As such, the higher the AUC, the more confident the classifier is at accurately recognizing an expression.
+
+# Results {-}
+
+```{r}
+humans_agreement <- humans_data %>% 
+  dplyr::select(ID, ppt, label_emotion) %>% 
+  tidyr::pivot_wider(names_from = ppt, values_from = label_emotion) %>% 
+  dplyr::select(-ID) %>% 
+  dplyr::mutate_all(factor, levels = unique(humans_data$label_emotion)) %>% 
+  irr::kappam.fleiss(detail = TRUE)
+
+machines_agreement <- machines_data %>%
+  dplyr::ungroup() %>% 
+  dplyr::select(ID, system, label_emotion) %>% 
+  tidyr::pivot_wider(names_from = system, values_from = label_emotion) %>% 
+  dplyr::select(-ID) %>% 
+  dplyr::mutate_all(factor, levels = unique(machines_data$label_emotion)) %>% 
+  irr::kappam.fleiss(detail = TRUE)
+```
+
+Before assessing emotion classification in terms of recognition performance, we tested the interrater reliability of the multiple human observers and automatic classifiers involved in this study. Fleiss’ Kappa showed significant agreements in emotion ratings among the human observers ($\kappa$ = `r round(humans_agreement$value, 2)`, $p < 0.001$) and for the automatic classifiers ($\kappa$ = `r round(machines_agreement$value, 2)`, $p < 0.001$).
+
+```{r}
+mean_comparison <- all_data %>% 
+  dplyr::mutate(comparison = ifelse(comparison == "Humans", "Humans", "Avg Automatic")) %>% 
+  dplyr::group_by(comparison) %>% 
+  dplyr::summarise(
+    m = mean(value)*100,
+    CImin = mean(value)*100 - se(value)*1.96*100,
+    CImax = mean(value)*100 + se(value)*1.96*100
+  )  %>% 
+  dplyr::mutate_if(is.numeric, round, 2) %>%
+  dplyr::mutate(print = glue::glue("$M = {m}$, $95\\% CI = [{CImin};{CImax}]$"))
+
+mean_name <- all_data %>% 
+  dplyr::filter(comparison != "Humans") %>% 
+  dplyr::group_by(name) %>% 
+  dplyr::summarise(
+    m = mean(value)*100,
+    CImin = mean(value)*100 - se(value)*1.96*100,
+    CImax = mean(value)*100 + se(value)*1.96*100
+  ) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::rename(comparison = name) %>% 
+  dplyr::mutate_if(is.numeric, round, 2) %>% 
+  dplyr::mutate(print = glue::glue("$M = {m}$, $95\\% CI = [{CImin};{CImax}]$"))
+```
+
+An analysis of the True Positive Rate (TPR) revealed that human observers generally performed better than the automatic classifiers (human observers: `r mean_comparison[mean_comparison$comparison == "Humans", "print"]` vs. automatic classifiers: `r mean_comparison[mean_comparison$comparison == "Avg Automatic", "print"]`). As can be seen in Fig \@ref(fig:plot-classifier), the best performance was obtained by Emotient (`r mean_name[mean_name$comparison == "Emotient", "print"]`), followed by VicarVision (`r mean_name[mean_name$comparison == "VicarVision", "print"]`), Neurodata Lab (`r mean_name[mean_name$comparison == "Neurodatalab", "print"]`), Visage Technologies (`r mean_name[mean_name$comparison == "VisageTechnologies", "print"]`), Microsoft (`r mean_name[mean_name$comparison == "Microsoft", "print"]`), Affectiva (`r mean_name[mean_name$comparison == "Affectiva", "print"]`), MorphCast (`r mean_name[mean_name$comparison == "MorphCast", "print"]`) and finally CrowdEmotion (`r mean_name[mean_name$comparison == "CrowdEmotion", "print"]`). 
+
+```{r plot-classifier, fig.height=4, out.width ="\\textwidth", fig.pos ="!h", fig.cap="(ref:plot-classifier)"}
+plot_classifier <- dplyr::bind_rows(mean_comparison, mean_name) %>% 
+  dplyr::mutate(comparison = factor(comparison, levels = c(
+    "Humans",
+    "Avg Automatic",
+    "Emotient",
+    "VicarVision",
+    "Neurodatalab",
+    "VisageTechnologies",
+    "Microsoft",
+    "Affectiva",
+    "MorphCast",
+    "CrowdEmotion"
+  ))) %>% 
+  ggplot(aes(x = comparison, y = m)) +
+  geom_rect(
+    xmin = 2.5, 
+    xmax = Inf, 
+    ymin = -Inf, 
+    ymax = Inf, 
+    alpha = 0.01, 
+    fill = "gray"
+  ) +
+  geom_hline(
+    data = function(x){subset(x, comparison == "Humans")}, 
+    mapping = aes(yintercept = m), 
+    color = "black", 
+    linetype = "dashed"
+  ) +
+  geom_col(aes(fill = comparison), width = 0.7, alpha = 0.5) +
+  geom_point(size = 1) +
+  geom_errorbar(
+    aes(ymin = CImin, ymax = CImax), 
+    colour = "black", 
+    width = 0.5, 
+    size = 0.5) +
+  scale_y_continuous(
+    "Accuracy (%)",
+    limits = c(0, 100),
+    breaks = c(0, 25, 50, 75, 100)
+  ) +
+  scale_x_discrete(
+    "Classifier",
+    labels = name_convention_line
+  ) +
+  scale_fill_manual(
+    values = c(
+      "#e41a1c", 
+      "#000000", 
+      "#984ea3", 
+      "#f781bf", 
+      "#a65628", 
+      "#999999", 
+      "#ff7f00", 
+      "#377eb8", 
+      "#ffff33", 
+      "#4daf4a"
+      )) +
+  theme_minimal() +
+  theme(
+    axis.line.x = element_line(color = "black", size = 0.1),
+    axis.line.y = element_line(color = "black", size = 0.1),
+    text = element_text(size = 10, family = "serif"),
+    axis.text.y = element_text(hjust = 0.5),
+    panel.background = element_rect(fill = "white", colour = "grey50"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    legend.position = "none"
+  ) +
+  coord_flip()
+
+plot_classifier
+
+# ggsave(
+#   filename = here::here("manuscript/Fig_1.tiff"),
+#   plot = plot_classifier,
+#   device = "tiff",
+#   dpi = 600
+#   )
+# ggplot(NULL)
+```
+
+## Recognition accuracy
+
+To further explore the classifiers’ diagnostic ability to discriminate between accurate and inaccurate recognition, ROC curves were plotted and the AUC was calculated. As illustrated in Fig \@ref(fig:roc-curve), human observers exhibited the overall highest discrimination accuracy, with AUC values close to 1, thereby visibly outperforming all computer-based systems. The performance of the latter can be described as fair in the context of posed expressions. Interestingly, AUC scores were elevated in four out of the eight automatic classifiers when expressions were spontaneous. This is also exemplified by the steeper ROC curve in humans, indicating that the ability to accurately recognize facial expressions was facilitated by spontaneous affective displays. Because classification scores by human observers may vary with the number of observers under consideration, we further calculated the AUC scores for every combination of the 14 observers (see `r fig_nums_s("observers-combination", display = "cite")` Fig).
+
+```{r roc-curve, fig.height=5, out.width ="\\textwidth", fig.pos ="!h", fig.cap="(ref:roc-curve)"}
+grid_analysis <- expand.grid(
+  database = c("Spontaneous\nExpressions","Posed\nExpressions"),
+  video_emotion = emotion_list,
+  label_emotion = emotion_list
+  ) %>%
+  dplyr::mutate_if(is.factor, as.character)
+
+auc_table <- humans_data %>%
+  dplyr::group_by(ID, system, database, video_emotion) %>%
+  dplyr::count(label_emotion) %>%
+  dplyr::mutate(sum_rating = sum(n)) %>%
+  dplyr::mutate(confidence_score = n/sum_rating) %>%
+  dplyr::select(-sum_rating, -n) %>%
+  dplyr::full_join(
+    grid_analysis, 
+    by = c("database", "video_emotion", "label_emotion")
+  ) %>%
+  dplyr::mutate(label_emotion = factor(
+    x = label_emotion,
+    levels = c(emotion_list, "other", "error", "undetermined")
+  )) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(system = "Humans") %>%
+  dplyr::mutate(correct_classification = case_when(
+    label_emotion == video_emotion ~ 1,
+    label_emotion != video_emotion ~ 0
+  )) %>% 
+  dplyr::bind_rows(
+    machines_data %>% dplyr::mutate(correct_classification = case_when(
+      label_type == "target" ~ 1,
+      label_type == "nontarget" ~ 0
+  ))) %>% 
+  dplyr::ungroup() %>% 
+  tidyr::nest(-system,-database) %>%
+  dplyr::mutate(system = as.factor(system),
+                database = as.factor(database),
+                roc_obj = purrr::map(data, ~ pROC::roc(
+                  response = .$correct_classification, 
+                  predictor = .$confidence_score
+                  ))) %>%
+  dplyr::mutate(roc_value = purrr::map(roc_obj,"auc") %>% as.numeric) %>%
+  dplyr::select(Classifier = system, database, roc_value) %>% 
+  dplyr::mutate(database = stringr::str_replace_all(database,"\nExpressions","")) %>%
+  dplyr::mutate(Classifier = factor(Classifier, levels = classifier_level)) %>% 
+  dplyr::mutate(roc_value = round(roc_value, 2)) %>% 
+  tidyr::spread(database, roc_value)
+
+original_plot <- humans_data %>%
+  dplyr::group_by(ID,system, database,video_emotion) %>%
+  dplyr::count(label_emotion) %>%
+  dplyr::mutate(sum_rating = sum(n)) %>%
+  dplyr::mutate(confidence_score = n/sum_rating) %>%
+  dplyr::select(-sum_rating, -n) %>%
+  dplyr::full_join(
+    grid_analysis, 
+    by = c("database", "video_emotion", "label_emotion")
+  ) %>%
+  replace(is.na(.), 0) %>%
+  dplyr::mutate(label_emotion = factor(
+    label_emotion,
+    levels = c(emotion_list, "other", "error", "undetermined")
+  )) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(system = "Humans") %>%
+  dplyr::mutate(correct_classification = case_when(
+    label_emotion == video_emotion ~ 1,
+    label_emotion != video_emotion ~ 0
+  )) %>% 
+  dplyr::bind_rows(machines_data %>%
+                     dplyr::mutate(correct_classification = case_when(
+                       label_type == "target" ~ 1,
+                       label_type == "nontarget" ~ 0
+                     ))) %>% 
+  dplyr::mutate(system = factor(
+    x = system, 
+    levels = classifier_level
+    )) %>%
+  ggplot(aes(d = correct_classification, m = confidence_score, color = system)) + 
+  geom_roc(labels = FALSE, pointsize = 0) +
+  facet_wrap( ~ database) +
+  scale_color_manual(
+    "Classifier",
+    values = color_scheme,
+    labels = name_convention_classifiers) +
+  theme(text = element_text(size = 10, family = "serif"),
+        legend.text = element_text(size = 10),
+        legend.text.align = 0,
+        legend.position = "bottom",
+        legend.box = "horizontal") +
+  guides(color = guide_legend(nrow = 3))
+
+main_legend <- gtable_filter(ggplot_gtable(ggplot_build(original_plot)), "guide-box") 
+
+roc_posed <- humans_data %>%
+  dplyr::group_by(ID, system, database,video_emotion) %>%
+  dplyr::count(label_emotion) %>%
+  dplyr::mutate(sum_rating = sum(n)) %>%
+  dplyr::mutate(confidence_score = n/sum_rating) %>%
+  dplyr::select(-sum_rating, -n) %>%
+  dplyr::full_join(
+    grid_analysis, 
+    by = c("database", "video_emotion", "label_emotion")
+  ) %>%
+  dplyr::mutate(label_emotion = factor(
+    label_emotion,
+    levels = c(emotion_list, "other", "error", "undetermined")
+  )) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(system = "Humans") %>%
+  dplyr::mutate(correct_classification = case_when(
+    label_emotion == video_emotion ~ 1,
+    label_emotion != video_emotion ~ 0
+  )) %>% 
+  dplyr::bind_rows(
+    machines_data %>% 
+      dplyr::mutate(correct_classification = case_when(
+        label_type == "target" ~ 1,
+        label_type == "nontarget" ~ 0
+      ))) %>% 
+  dplyr::mutate(system = factor(system, levels = classifier_level)) %>%
+  dplyr::filter(database == "Posed\nExpressions") %>% 
+  ggplot(aes(d = correct_classification, m = confidence_score, color = system)) + 
+  geom_roc(labels = FALSE, pointsize = 0, size = 0.5) +
+  style_roc(
+    xlab = "False Positive Rate",
+    ylab = "True Positive Rate", 
+    theme = theme_minimal) + 
+  scale_color_manual(
+    "AUC",
+    values = color_scheme,
+    labels = auc_table$Posed
+  ) +
+  scale_x_continuous(
+    "False Positive Rate",
+    breaks = c(0, 0.25, 0.5, 0.75, 1)
+  ) +
+  scale_y_continuous(
+    "True Positive Rate",
+    breaks = c(0, 0.25, 0.5, 0.75, 1)
+  ) +
+  ggtitle("Posed\nExpressions") +
+  theme(text = element_text(size = 14, family = "serif"),
+        strip.text.x = element_text(face = "bold", size = 12),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.position = c(0.85, 0.35),
+        legend.key.size = unit(0.3, 'cm'),
+        plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")
+
+roc_spontaneous <- humans_data %>%
+  dplyr::group_by(ID, system, database,video_emotion) %>%
+  dplyr::count(label_emotion) %>%
+  dplyr::mutate(sum_rating = sum(n)) %>%
+  dplyr::mutate(confidence_score = n/sum_rating) %>%
+  dplyr::select(-sum_rating, -n) %>%
+  dplyr::full_join(
+    grid_analysis, 
+    by = c("database", "video_emotion", "label_emotion")
+  ) %>%
+  replace(is.na(.), 0) %>%
+  dplyr::mutate(label_emotion = factor(
+    label_emotion,
+    levels = c(emotion_list, "other", "error", "undetermined")
+  )) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(system = "Humans") %>%
+  dplyr::mutate(correct_classification = case_when(
+    label_emotion == video_emotion ~ 1,
+    label_emotion != video_emotion ~ 0
+  )) %>% 
+  dplyr::bind_rows(
+    machines_data %>% 
+      dplyr::mutate(correct_classification = case_when(
+        label_type == "target" ~ 1,
+        label_type == "nontarget" ~ 0
+      ))) %>% 
+  dplyr::mutate(system = factor(
+    system,
+    levels = classifier_level)) %>%
+  dplyr::filter(database == "Spontaneous\nExpressions") %>% 
+  ggplot(aes(d = correct_classification, m = confidence_score, color = system)) + 
+  geom_roc(labels = FALSE, pointsize = 0, size = 0.5) +
+  style_roc(
+    xlab = "False Positive Rate",
+    ylab = "True Positive Rate", 
+    theme = theme_minimal) + 
+  scale_color_manual(
+    "AUC",
+    values = color_scheme,
+    labels = auc_table$Spontaneous
+  ) +
+  scale_x_continuous(
+    "False Positive Rate",
+    breaks = c(0, 0.25, 0.5, 0.75, 1)
+  ) +
+  scale_y_continuous(
+    "True Positive Rate",
+    breaks = c(0, 0.25, 0.5, 0.75, 1)
+  ) +
+  ggtitle("Spontaneous\nExpressions") +
+  theme(text = element_text(size = 14, family = "serif"),
+        strip.text.x = element_text(face = "bold", size = 12),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.position = c(0.85, 0.35),
+        legend.key.size = unit(0.3, 'cm'),
+        plot.title = element_text(face = "bold", hjust = 0.5)) + 
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed")
+
+roc_curve <- ggpubr::ggarrange(
+  ggpubr::ggarrange(roc_posed, roc_spontaneous),
+  main_legend,
+  ncol = 1, 
+  nrow = 2,
+  heights = c(1, 0.3)
+  )
+
+roc_curve
+
+# ggsave(
+#   filename = here::here("manuscript/Fig_2.tiff"),
+#   plot = roc_curve,
+#   device = "tiff",
+#   dpi = 600
+#   )
+# ggplot(NULL)
+```
+
+```{r}
+# roc_data <- humans_data %>%
+#   dplyr::group_by(ID, system, database, video_emotion) %>%
+#   dplyr::count(label_emotion) %>%
+#   dplyr::mutate(sum_rating = sum(n)) %>%
+#   dplyr::mutate(confidence_score = n/sum_rating) %>%
+#   dplyr::select(-sum_rating, -n) %>%
+#   dplyr::full_join(
+#     grid_analysis,
+#     by = c("database", "video_emotion", "label_emotion")
+#   ) %>%
+#   dplyr::mutate(label_emotion = factor(
+#     x = label_emotion,
+#     levels = c(emotion_list, "other", "error", "undetermined")
+#   )) %>%
+#   dplyr::ungroup() %>%
+#   dplyr::mutate(system = "Humans") %>%
+#   dplyr::mutate(correct_classification = case_when(
+#     label_emotion == video_emotion ~ 1,
+#     label_emotion != video_emotion ~ 0
+#   )) %>%
+#   dplyr::bind_rows(
+#     machines_data %>% dplyr::mutate(correct_classification = case_when(
+#       label_type == "target" ~ 1,
+#       label_type == "nontarget" ~ 0
+#     ))) %>%
+#   dplyr::ungroup()
+# 
+# test_grid <- combn(classifier_level, 2) %>%
+#   t() %>%
+#   as.data.frame(stringsAsFactors = FALSE) %>%
+#   dplyr::rename(
+#     classifier1 = V1,
+#     classifier2 = V2,
+#   ) %>%
+#   tidyr::crossing(database = c("Spontaneous\nExpressions","Posed\nExpressions"))
+# 
+# roc_test_res <- NULL
+# 
+# for (i in 1:nrow(test_grid)){
+#   classifiers <- test_grid[i, ]
+# 
+#   c1 <- classifiers[["classifier1"]]
+#   c2 <- classifiers[["classifier2"]]
+# 
+#   expression_type <- classifiers[["database"]]
+# 
+#   data1 <- roc_data %>%
+#     dplyr::filter(system == c1 & database == expression_type)
+# 
+#   data2 <- roc_data %>%
+#     dplyr::filter(system == c2 & database == expression_type)
+# 
+#   roc1 <- pROC::roc(data1$correct_classification, data1$confidence_score)
+#   roc2 <- pROC::roc(data2$correct_classification, data2$confidence_score)
+#   roc_test <- pROC::roc.test(roc1, roc2, method="bootstrap", progress = "none")
+# 
+#   row_data <- data.frame(
+#     classifier1 = c1,
+#     classifier2 = c2,
+#     database = expression_type,
+#     auc1 = round(roc_test$estimate[["AUC of roc1"]], 2),
+#     auc2 = round(roc_test$estimate[["AUC of roc2"]], 2),
+#     d_stat = round(roc_test$statistic, 2),
+#     p_val = format.pval(round(roc_test$p.value, 3), eps = 0.001),
+#     stringsAsFactors = FALSE
+#   )
+# 
+#   roc_test_res <- dplyr::bind_rows(roc_test_res, row_data)
+# }
+```
+
+To compare the AUC from each classifier, pairwise two-sided bootstrap comparisons set to 2000 replications [@carpenter2000bootstrap] were conducted (see `r table_nums_s("roc-test-posed", display = "cite")` and `r table_nums_s("roc-test-spontaneous", display = "cite")` Tables for detailed results). For each bootstrap replicate, the AUC of the two ROC curves are computed and the difference is stored. The following formula is used: $D = (AUC1-AUC2)/s$ where $s$ is the standard deviation of the bootstrap differences and $AUC1$ and $AUC2$ are the AUC of the two (original) ROC curves. $D$ is then compared to the normal distribution, according to the value of alternative. In the context of posed expressions, recognition rates by human observers had a significantly higher AUC compared to those of all other classifiers (*p*s < .001). Among the automatic classifiers, the pairwise AUC comparisons did not reveal any significant differences except between Affectiva and CrowdEmotion ($D_{Af-CE} = 2.38, p = 0.017$). The pattern of results was similar for spontaneous expressions, with a higher AUC for human observers in comparison to all other classifiers (*p*s < .001). Among the automatic classifiers, AUCs from Microsoft, VicarVison, Emotient, Affectiva and VisageTechnologies exceeded that from CrowdEmotion (*p*s < .05).
+
+In addition to assessing the relative classification performance with ROC curves and their corresponding AUC [@davis2006relationship], unweighted True Positive Rates (TPR), Positive Predicted Values (PPV), True Negative Rates (TNR) and F1 scores were calculated (see `r table_nums_s("database-accuracy-spontaneous", display = "cite")` and `r table_nums_s("database-accuracy-posed", display = "cite")` Tables for detailed results).
+
+# Discussion {-}
+
+Following recent advances in automatic affect analysis, there has been a proliferation of commercially available automatic classifiers designed to recognize human facial expressions. Surprisingly, the number of independent peer-reviewed validation studies for these automatic classifiers is small and generally limited to validation using deliberately posed displays. The present study aimed to provide a multi-system evaluation of eight commercial automatic classifiers using two types of stimuli: posed expressions arising from instructions to portray a specific emotion, and spontaneous expressions in response to emotion-eliciting events. On the basis of dynamic stimuli sampled from two large databases, which differed on the described dimension of comparison, results revealed a recognition advantage for human observers over the automatic classifiers. The human recognition accuracy of 72% in the present study is consistent with evidence reported in the literature for dynamic expressions [e.g., @banziger2012introducing; @battocchi2005first; @recio2013classification]. Among the eight classifiers tested in this work, we observed some variance in recognition accuracy, ranging from 48% to 62%.
+
+Similar to past research [@lewinski2014automated; @stockli2018facial], recognition indices for the two best performing classifiers approximated those of human observers, suggesting high agreement in the classification of posed expressions. However, accuracy of most classifiers was consistently lower for spontaneous facial behavior. This could be due to the lack of prototypicality, that is, greater expressive variability, inherent in spontaneous affective responses. Because the emotional expression is induced via the presentation of emotion-eliciting materials, spontaneous displays have different properties than those that are deliberately instructed or enacted. For example, it has been shown that spontaneous facial actions differ in their temporal and morphological characteristics (e.g., duration, intensity, asymmetry) from posed ones [@schmidt2006movement]. Furthermore, the overall patterns of activity are often heterogeneous, which renders them more difficult to discern because of their ambiguous emotional content [@dawel2017perceived; @hess2001facial; @zloteanu2018detecting]. Results based on instructed and stereotypical facial portrayals may therefore not be directly transferable to those derived from activity occurring in spontaneous situations. Although dataset-specific features (i.e., uneven distributions of spontaneous stimuli across the six emotion categories) might independently affect emotion recognition, both types of stimuli were recorded under relatively controlled experimental conditions.
+
+This conclusion further appears to be supported by the observed similarity in patterns of confusion errors between humans and the automatic classifiers. While the present results suggested considerable overlap in the type of confusions for posed expressions, these correlations were much weaker in the case of spontaneous expressions. Further analyses showed that discrimination accuracy (i.e., the AUC) was on average lower for all eight automatic classifiers. When comparing AUC values, human observers clearly outperformed all automatic classifiers in recognizing emotions from both spontaneous and posed expressions. The results did not reveal any significant differences between the eight automatic classifiers (except when comparing CrowdEmotion to the other classifiers in the context of spontaneous facial expressions).Thus, the manner in which affective information is automatically extracted is almost certainly not the same compared to how human observers achieve the task [@mcduff2016discovering; @gunes2016automatic]. Such discrepancies can likely be explained by the quality and quantity of data available to train computer-based systems. Although several efforts have been reported over the last few years on the automatic analysis of spontaneous displays [e.g., @bartlett2005recognizing; @valstar2006spontaneous], most current automatic classifiers have typically been trained and tested using posed or acted facial behavior. Besides their limited ability to transfer to the subtlety and complexity of spontaneous recordings [@pantic2007machine], the highly standardized form of prototypical expressions makes it difficult to generalize beyond specific training sets. 
+
+At the technical level, the problem of over-fitting is likely to be prevalent. That is, the classifiers may have learned to respond too closely to artificially uniform training sets, thereby losing flexibility when they are applied to unexpectedly subtle and ambiguous expressions. To develop more robust models in the future, it will be important to obtain and train on more databases that display spontaneous and even naturalistic behavior [@martinez2017automatic]. The latter type of behavior denotes affective responses recorded in real-life settings (i.e., “in the wild”). Because naturalistic expressions are not elicited in the laboratory, they are the least experimentally controlled [@scherer2010use]; as such, they have multiple social functions and are driven by a variety of socio-cultural and contextual influences. To achieve this aim, metadata in the form of self-reports, behavioral coding [e.g., @ekman1997face], and physiological (facial EMG), or neuroscientific measures (EEG, fMRI) are needed to specify the emotional content of recordings. Such annotation of large video sets can help accelerate the progress of affective computing research by providing more comprehensive benchmarks for the training and testing of automatic classifiers on spontaneous expressions.
+
+While BET is the most commonly used taxonomy in affective computing, it must be noted that such a perspective is unlikely to reflect the full range of everyday emotions. Typically, emotional behavior “in the wild” involves a wide variety of affective displays that span a substantial number of emotional states beyond the basic six. Even if this may include prototypical AU configurations, emotion expressions are likely to vary across cultures, contexts and individuals [@barrett2019emotional]. Also, one cannot assume a one-to-one correspondence between the experience and expression of emotion [@calvo2010affect]. Given that facial expressions fulfill a range of functions (e.g., appraisals, action tendencies, social motives), it is unlikely that they always signal current emotions in the sense of a “readout” [@kappas2013facial; @parkinson2005facial]. Just because a person is smiling does not mean that s/he is happy. Computer-based systems using the BET perspective to detect discrete emotions from facial displays may therefore stand on questionable theoretical and empirical grounds. Also, expressions span a large range of psychological phenomena. To account for this complexity, a few tentative efforts in computer vision have recently started to address non-basic affective and mental states such as interest, pain, boredom, and frustration [@littlewort2007faces; @yeasin2006recognition]. By extending the number of emotion categories, automated methods might overcome their current limitation of classifying a small set of emotion labels that are insufficient to describe the complexity of human expressive behaviors. Consequently, we may be able to gain a fuller understanding of the signals and functions of affective phenomena in the future.
+
+Prospective approaches to automatic classification of human affect should	further aim to integrate relevant contextual information, as well as learn to better suppress irrelevant information. Both databases used in this work comprised stimuli recorded under relatively controlled conditions, and depicted full frontal shots with	neutral backgrounds and steady head poses. While these databases have kept contextual variations across senders constant, information about the wider physical environment and situational factors is likely to be critical to human perception outside	the laboratory. Apart from the present limitation of using only two datasets, this would also make the stimuli more representative of the situations in which classifiers are actually employed. Past research, for example, has shown that the same facial expression is interpreted differently depending on the social context in which it occurs [@barrett2010context; @wieser2012faces]. Moreover, context helps to disambiguate between various exemplars of an emotion category [@aviezer2017the]. Failures to address the relative role of context may therefore lead to difficulties in classification processes generalizing to real-world settings with natural expressions. Issues regarding the poor generalization capacity of machine analyses have recently led to a call for new regulations in the use of affective computing technologies, especially when applied to organizational and decision-making processes [@crawford2019ai]. It will fall to future research to train and test relevant computer systems on more ecologically valid and meaningful materials that are representative of a wider range of emotional and situational contexts. The present study is a first attempt to provide a systematic multi-system evaluation of current commercial automatic classifiers using the basic six emotions. By doing so, we hope to help pave the way for the development of more robust automatic classifiers in the future.
+
+# Acknowledgement
+
+The authors would like to thank the human observers for coding all videos, as well as the software companies which agreed to the publication of the present data: Affectiva, CrowdEmotion, Microsoft Cognitive Service Face API team, MorphCast, Neurodata Lab, Noldus/VicarVision and Visage Technologies.
+
+The authors further thank the developers of the following R packages used to process, analyze, display and report data: `r cite_r(file = "r-references.bib")`.
+
+# Data availability
+
+The raw data are available with open access on zenodo.org [@damien_dupre_2019_3699037]. The R code and relevant data for statistical computing are available at https://github.com/damien-dupre/machine_challenge.
+
+# Supporting information
+
+**S1 Table. Metrics for determining the confidence score (CS), the recognized emotion label, and the emotion classification score per video (B) based on the raw data (A) from human observers.**
+(PDF)
+
+**S2 Table. Metrics for determining the confidence score (CS), the recognized emotion label, and the emotion classification score per video (B) based on the raw data (A) from the automatic classifiers.**
+(PDF)
+
+**S3 Table. Pairwise two-sided bootstrap comparision of the Receiver Operating Characteristic (ROC)'s Area Under the Curve (AUC) between the classifiers for posed facial expressions.**
+(PDF)
+
+**S4 Table. Pairwise two-sided bootstrap comparision of the Receiver Operating Characteristic (ROC)'s Area Under the Curve (AUC) between the classifiers for spontaneous expressions.**
+(PDF)
+
+**S5 Table. Performance indices for human observers and automatic classifiers by emotion in the context of posed expressions.**
+(PDF)
+
+**S6 Table. Performance indices for human observers and automatic classifiers by emotion in the context of spontaneous expressions.**
+(PDF)
+
+**S1 Fig. Emotion confusion matrices for human observers and automatic classifiers separately by posed and spontaneous expressions.** For cases with ‘undetermined’ confidence levels, the sum of the marginal proportion of recognized emotions can be higher than 100\%.
+(PDF)
+
+**S2 Fig. Mean values and standard deviations of the Area Under the Curve (AUC) by type of expression for every combination of the 14 human observers.**
+(PDF)
+
+# References {#references .unnumbered}

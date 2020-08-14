@@ -38,11 +38,11 @@ author_summary: |
 
   Dr. Gary McKeown is senior lecturer in the School of Psychology at Queen’s University Belfast, United Kingdom. His research interests focus on social and communicative interactions, social signal processing and affective computing, laughter and humor, the evolution of human communication and language, and embodied conversational agents. He is Associate Editor of the *IEEE Transactions on Affective Computing*.
 
-bibliography: [references.bib, r-references.bib]
+bibliography: ["bib/references.bib", "bib/r-references.bib"]
 output:
   bookdown::pdf_book:
     base_format: rticles::plos_article
-csl: plos.csl
+csl: "csl/plos.csl"
 keep_tex: yes
 #output: papaja::apa6_word
 
@@ -169,7 +169,7 @@ color_scheme <- c(
   )
 
 # R package references
-r_refs(file = "r-references.bib")
+r_refs(file = "bib/r-references.bib")
 ```
 
 ```{r captions, include=FALSE}
@@ -434,7 +434,7 @@ plot_classifier <- dplyr::bind_rows(mean_comparison, mean_name) %>%
 plot_classifier
 
 # ggsave(
-#   filename = here::here("manuscript/Fig_1.tiff"),
+#   filename = here::here("manuscript/img/fig_1.tiff"),
 #   plot = plot_classifier,
 #   device = "tiff",
 #   dpi = 600
@@ -504,7 +504,7 @@ original_plot <- humans_data %>%
     grid_analysis, 
     by = c("database", "video_emotion", "label_emotion")
   ) %>%
-  replace(is.na(.), 0) %>%
+  tidyr::drop_na() %>% #replace(is.na(.), 0) %>%
   dplyr::mutate(label_emotion = factor(
     label_emotion,
     levels = c(emotion_list, "other", "error", "undetermined")
@@ -610,7 +610,7 @@ roc_spontaneous <- humans_data %>%
     grid_analysis, 
     by = c("database", "video_emotion", "label_emotion")
   ) %>%
-  replace(is.na(.), 0) %>%
+  tidyr::drop_na() %>% #replace(is.na(.), 0) %>%
   dplyr::mutate(label_emotion = factor(
     label_emotion,
     levels = c(emotion_list, "other", "error", "undetermined")
@@ -674,7 +674,7 @@ roc_curve <- ggpubr::ggarrange(
 roc_curve
 
 # ggsave(
-#   filename = here::here("manuscript/Fig_2.tiff"),
+#   filename = here::here("manuscript/img/fig_2.tiff"),
 #   plot = roc_curve,
 #   device = "tiff",
 #   dpi = 600
@@ -776,7 +776,7 @@ Prospective approaches to automatic classification of human affect should	furthe
 
 The authors would like to thank the human observers for coding all videos, as well as the software companies which agreed to the publication of the present data: Affectiva, CrowdEmotion, Microsoft Cognitive Service Face API team, MorphCast, Neurodata Lab, Noldus/VicarVision and Visage Technologies.
 
-The authors further thank the developers of the following R packages used to process, analyze, display and report data: `r cite_r(file = "r-references.bib")`.
+The authors further thank the developers of the following R packages used to process, analyze, display and report data: `r cite_r(file = "bib/r-references.bib")`.
 
 # Data availability
 
